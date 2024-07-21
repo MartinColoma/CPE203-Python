@@ -108,8 +108,11 @@ def show_results(method_name, iteration_data, root_value):
     for widget in results_frame.winfo_children():
         widget.destroy()
 
-    tk.Label(results_frame, text=f"f(x): {equation_str}", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
+    tk.Label(results_frame, text=f"Function f(x): {equation_str}", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
     tk.Label(results_frame, text=f"Root: {round(root_value, 6):.6f}", font=("Courier New", 12)).grid(row=1, column=0, padx=10, pady=5, sticky='w')
+
+    total_iterations = len(iteration_data)
+    tk.Label(results_frame, text=f"Total Number of Iterations: {total_iterations}", font=("Courier New", 12)).grid(row=2, column=0, padx=10, pady=5, sticky='w')
 
     columns, headings = get_columns_and_headings(method_name)
     tree = ttk.Treeview(results_frame, columns=columns, show='headings')
@@ -123,15 +126,16 @@ def show_results(method_name, iteration_data, root_value):
     for row in rounded_data:
         tree.insert("", tk.END, values=row)
     
-    tree.grid(row=2, column=0, padx=10, pady=10, sticky='nsew')
+    tree.grid(row=3, column=0, padx=10, pady=10, sticky='nsew')
 
     try_again_button = tk.Button(results_frame, text="Try Again", command=try_again, font=("Courier New", 12))
-    try_again_button.grid(row=3, column=0, padx=10, pady=10, sticky='e')
+    try_again_button.grid(row=4, column=0, padx=10, pady=10, sticky='e')
 
-    results_frame.grid_rowconfigure(2, weight=1)
+    results_frame.grid_rowconfigure(3, weight=1)
     results_frame.grid_columnconfigure(0, weight=1)
-    
-    window.geometry("1080x720")  
+
+    window.geometry("1080x720")
+
 
 def get_columns_and_headings(method_name):
     if method_name == "Bisection Method":
@@ -152,15 +156,9 @@ def get_columns_and_headings(method_name):
     return columns, headings
 
 def try_again():
-    function_entry.delete(0, tk.END)
-    method_combobox.set("")
-    param_a_entry.delete(0, tk.END)
-    param_b_entry.delete(0, tk.END)
-    
-    for widget in results_frame.winfo_children():
-        widget.destroy()
-
-    window.geometry("1080x200")  
+    global window
+    window.destroy()
+    main()
 
 def update_parameter_b_state(*args):
     method_name = method_combobox.get()
@@ -200,7 +198,7 @@ def process_input(method_name):
     
     param_a = float(param_a_entry.get())
     param_b = float(param_b_entry.get()) if param_b_entry.get() else None
-    tol = 0.000001
+    tol = 0.0000004
 
     try:
         if method_name == "Bisection Method":
@@ -225,6 +223,12 @@ def process_input(method_name):
             return
 
         show_results(method_name, iteration_data, root_value)
+
+        function_entry.config(state='disabled')
+        method_combobox.config(state='disabled')
+        param_a_entry.config(state='disabled')
+        param_b_entry.config(state='disabled')
+        show_result_button.config(state='disabled')
     except Exception as e:
         tk.messagebox.showerror("Error", str(e))
 
