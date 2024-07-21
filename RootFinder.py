@@ -108,8 +108,8 @@ def show_results(method_name, iteration_data, root_value):
     for widget in results_frame.winfo_children():
         widget.destroy()
 
-    tk.Label(results_frame, text=f"f(x): {equation_str}").grid(row=0, column=0, padx=10, pady=5, sticky='w')
-    tk.Label(results_frame, text=f"Root: {round(root_value, 6):.6f}").grid(row=1, column=0, padx=10, pady=5, sticky='w')
+    tk.Label(results_frame, text=f"f(x): {equation_str}", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
+    tk.Label(results_frame, text=f"Root: {round(root_value, 6):.6f}", font=("Courier New", 12)).grid(row=1, column=0, padx=10, pady=5, sticky='w')
 
     columns, headings = get_columns_and_headings(method_name)
     tree = ttk.Treeview(results_frame, columns=columns, show='headings')
@@ -125,7 +125,7 @@ def show_results(method_name, iteration_data, root_value):
     
     tree.grid(row=2, column=0, padx=10, pady=10, sticky='nsew')
 
-    try_again_button = tk.Button(results_frame, text="Try Again", command=try_again)
+    try_again_button = tk.Button(results_frame, text="Try Again", command=try_again, font=("Courier New", 12))
     try_again_button.grid(row=3, column=0, padx=10, pady=10, sticky='e')
 
     results_frame.grid_rowconfigure(2, weight=1)
@@ -160,79 +160,113 @@ def try_again():
     for widget in results_frame.winfo_children():
         widget.destroy()
 
-    window.geometry("600x200")  
+    window.geometry("1080x200")  
 
-def main():
-    global equation_str, window, function_entry, method_combobox, param_a_entry, param_b_entry, results_frame
-    
-    window = tk.Tk()
-    window.title("Numerical Methods for Finding Roots")
+def update_parameter_b_state(*args):
+    method_name = method_combobox.get()
+    if method_name in ['Fixed Point Method', 'Newton-Raphson Method']:
+        param_b_entry.config(state='disabled')
+    else:
+        param_b_entry.config(state='normal')
+    check_show_result_button_state()
 
-    tk.Label(window, text="Function (in terms of x):").grid(row=0, column=0, padx=10, pady=5, sticky='w')
-    function_entry = tk.Entry(window, width=50)
-    function_entry.grid(row=0, column=1, padx=10, pady=5, sticky='w')
+def check_show_result_button_state():
+    method_name = method_combobox.get()
+    equation_filled = function_entry.get().strip() != ""
+    param_a_filled = param_a_entry.get().strip() != ""
+    param_b_filled = param_b_entry.get().strip() != ""
 
-    tk.Label(window, text="Method:").grid(row=1, column=0, padx=10, pady=5, sticky='w')
-    method_combobox = ttk.Combobox(window, values=["Bisection Method", "Regula Falsi Method", "Fixed Point Method", "Newton-Raphson Method", "Secant Method"], state='readonly')
-    method_combobox.grid(row=1, column=1, padx=10, pady=5, sticky='w')
-
-    tk.Label(window, text="Parameter A (or initial guess):").grid(row=2, column=0, padx=10, pady=5, sticky='w')
-    param_a_entry = tk.Entry(window, width=50)
-    param_a_entry.grid(row=2, column=1, padx=10, pady=5, sticky='w')
-
-    tk.Label(window, text="Parameter B (or second guess for Secant Method):").grid(row=3, column=0, padx=10, pady=5, sticky='w')
-    param_b_entry = tk.Entry(window, width=50)
-    param_b_entry.grid(row=3, column=1, padx=10, pady=5, sticky='w')
-
-    show_result_button = tk.Button(window, text="Show Result", command=lambda: process_input(method_combobox.get()))
-    show_result_button.grid(row=4, column=1, padx=10, pady=10, sticky='e')
-
-    results_frame = tk.Frame(window)
-    results_frame.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
-    
-    window.grid_rowconfigure(5, weight=1)
-    window.grid_columnconfigure(0, weight=1)
-    
-    window.geometry("600x200")  
-    window.mainloop()
+    if method_name == 'Bisection Method' and equation_filled and param_a_filled and param_b_filled:
+        show_result_button.config(state='normal')
+    elif method_name == 'Regula Falsi Method' and equation_filled and param_a_filled and param_b_filled:
+        show_result_button.config(state='normal')
+    elif method_name == 'Fixed Point Method' and equation_filled and param_a_filled:
+        show_result_button.config(state='normal')
+    elif method_name == 'Newton-Raphson Method' and equation_filled and param_a_filled:
+        show_result_button.config(state='normal')
+    elif method_name == 'Secant Method' and equation_filled and param_a_filled and param_b_filled:
+        show_result_button.config(state='normal')
+    else:
+        show_result_button.config(state='disabled')
 
 def process_input(method_name):
     global equation_str
     equation_str = function_entry.get()
-    
     try:
         f, f_lambda = parse_equation(equation_str)
-    except ValueError as ve:
-        print(ve)
+    except ValueError as e:
+        tk.messagebox.showerror("Error", str(e))
         return
     
-    f_prime_str = diff(f, x)
-    f_prime_lambda = lambdify(x, f_prime_str, 'numpy')
-    
-    tol = 1e-6
     param_a = float(param_a_entry.get())
-    param_b = float(param_b_entry.get())
+    param_b = float(param_b_entry.get()) if param_b_entry.get() else None
+    tol = 0.000001
+
+    try:
+        if method_name == "Bisection Method":
+            interval1, interval2 = param_a, param_b
+            iteration_data, root_value = bisection_method(interval1, interval2, f_lambda)
+        elif method_name == "Regula Falsi Method":
+            interval1, interval2 = param_a, param_b
+            iteration_data, root_value = regula_falsi_method(interval1, interval2, f_lambda, tol)
+        elif method_name == "Fixed Point Method":
+            f_prime = diff(f, x)
+            f_prime_lambda = lambdify(x, f_prime, 'numpy')
+            iteration_data, root_value = fixed_point(f_lambda, f_prime_lambda, param_a, tol)
+        elif method_name == "Newton-Raphson Method":
+            f_prime = diff(f, x)
+            f_prime_lambda = lambdify(x, f_prime, 'numpy')
+            iteration_data, root_value = newton(f_lambda, f_prime_lambda, param_a, tol)
+        elif method_name == "Secant Method":
+            x0, x1 = param_a, param_b
+            iteration_data, root_value = secant(f_lambda, x0, x1, tol)
+        else:
+            tk.messagebox.showerror("Error", "Invalid method selected")
+            return
+
+        show_results(method_name, iteration_data, root_value)
+    except Exception as e:
+        tk.messagebox.showerror("Error", str(e))
+
+def main():
+    global window, function_entry, method_combobox, param_a_entry, param_b_entry, results_frame, show_result_button
+
+    window = tk.Tk()
+    window.title("Numerical Methods for Finding Roots")
+
+    tk.Label(window, text="Function (in terms of x):", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
+    function_entry = tk.Entry(window, width=50, font=("Courier New", 12))
+    function_entry.grid(row=0, column=1, padx=10, pady=5, sticky='w')
+
+    tk.Label(window, text="Method:", font=("Courier New", 12)).grid(row=1, column=0, padx=10, pady=5, sticky='w')
+    method_combobox = ttk.Combobox(window, values=["Bisection Method", "Regula Falsi Method", "Fixed Point Method", "Newton-Raphson Method", "Secant Method"], state='readonly', font=("Courier New", 12))
+    method_combobox.grid(row=1, column=1, padx=10, pady=5, sticky='w')
     
-    if method_name == 'Bisection Method':
-        iteration_data, root_value = bisection_method(param_a, param_b, f_lambda)
-        show_results("Bisection Method", iteration_data, root_value)
-    elif method_name == 'Regula Falsi Method':
-        iteration_data, root_value = regula_falsi_method(param_a, param_b, f_lambda, tol)
-        show_results("Regula Falsi Method", iteration_data, root_value)
-    elif method_name == 'Fixed Point Method':
-        iteration_data, root_value = fixed_point(f_lambda, f_prime_lambda, param_a, tol)
-        show_results("Fixed Point Method", iteration_data, root_value)
-    elif method_name == 'Newton-Raphson Method':
-        iteration_data, root_value = newton(f_lambda, f_prime_lambda, param_a, tol)
-        show_results("Newton-Raphson Method", iteration_data, root_value)
-    elif method_name == 'Secant Method':
-        x0 = param_a
-        x1 = param_b
-        iteration_data, root_value = secant(f_lambda, x0, x1, tol)
-        show_results("Secant Method", iteration_data, root_value)
-    else:
-        print("Invalid method")
-        return
+    tk.Label(window, text="Parameter A (or initial guess):", font=("Courier New", 12)).grid(row=2, column=0, padx=10, pady=5, sticky='w')
+    param_a_entry = tk.Entry(window, width=50, font=("Courier New", 12))
+    param_a_entry.grid(row=2, column=1, padx=10, pady=5, sticky='w')
+
+    tk.Label(window, text="Parameter B (or second guess for Secant Method):", font=("Courier New", 12)).grid(row=3, column=0, padx=10, pady=5, sticky='w')
+    param_b_entry = tk.Entry(window, width=50, font=("Courier New", 12))
+    param_b_entry.grid(row=3, column=1, padx=10, pady=5, sticky='w')
+
+    show_result_button = tk.Button(window, text="Show Result", command=lambda: process_input(method_combobox.get()), font=("Courier New", 12), state='disabled')
+    show_result_button.grid(row=4, column=1, padx=10, pady=10, sticky='e')
+
+    results_frame = tk.Frame(window)
+    results_frame.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky='nsew')
+
+    window.grid_rowconfigure(5, weight=1)
+    window.grid_columnconfigure(0, weight=1)
+
+    window.geometry("1080x200")  
+
+    method_combobox.bind("<<ComboboxSelected>>", update_parameter_b_state)
+    function_entry.bind("<KeyRelease>", lambda e: check_show_result_button_state())
+    param_a_entry.bind("<KeyRelease>", lambda e: check_show_result_button_state())
+    param_b_entry.bind("<KeyRelease>", lambda e: check_show_result_button_state())
+    
+    window.mainloop()
 
 if __name__ == "__main__":
     main()
