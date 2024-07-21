@@ -108,7 +108,7 @@ def show_results(method_name, iteration_data, root_value):
     for widget in results_frame.winfo_children():
         widget.destroy()
 
-    tk.Label(results_frame, text=f"Function f(x): {equation_str}", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
+    tk.Label(results_frame, text=f"Function: {equation_str}", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
     tk.Label(results_frame, text=f"Root: {round(root_value, 6):.6f}", font=("Courier New", 12)).grid(row=1, column=0, padx=10, pady=5, sticky='w')
 
     total_iterations = len(iteration_data)
@@ -117,13 +117,15 @@ def show_results(method_name, iteration_data, root_value):
     columns, headings = get_columns_and_headings(method_name)
     
     style = ttk.Style()
-    style.configure("Custom.Treeview.Heading", font=("Courier New", 12), borderwidth=1, relief="solid")
-    style.configure("Custom.Treeview", rowheight=25, borderwidth=1, relief="solid")
+    style.configure("Custom.Treeview.Heading", font=("Courier New", 12), borderwidth=5, relief="solid")
+    style.configure("Custom.Treeview", font=("Courier New", 12), rowheight=25, borderwidth=5, relief="solid")
+    style.layout("Custom.Treeview", [('Custom.Treeview.treearea', {'sticky': 'nswe'})])
+    style.map("Custom.Treeview", background=[('selected', 'blue')], foreground=[('selected', 'white')])
     
     tree = ttk.Treeview(results_frame, columns=columns, show='headings', style="Custom.Treeview")
 
     for col, heading in zip(columns, headings):
-        tree.heading(col, text=heading)  # Removed style argument
+        tree.heading(col, text=heading)
         tree.column(col, width=100, anchor='center')
 
     rounded_data = [[round(value, 6) for value in row] for row in iteration_data]
@@ -177,7 +179,7 @@ def check_show_result_button_state():
     equation_filled = function_entry.get().strip() != ""
     param_a_filled = param_a_entry.get().strip() != ""
     param_b_filled = param_b_entry.get().strip() != ""
-
+    
     if method_name == 'Bisection Method' and equation_filled and param_a_filled and param_b_filled:
         show_result_button.config(state='normal')
     elif method_name == 'Regula Falsi Method' and equation_filled and param_a_filled and param_b_filled:
@@ -215,7 +217,12 @@ def process_input(method_name):
             iteration_data, root_value = secant(f_lambda, param_a, param_b, tol)
         else:
             raise ValueError("Unknown method")
-
+        
+        function_entry.config(state='disabled')
+        method_combobox.config(state='disabled')
+        param_a_entry.config(state='disabled')
+        param_b_entry.config(state='disabled')
+        show_result_button.config(state='disabled')
         show_results(method_name, iteration_data, root_value)
 
     except Exception as e:
