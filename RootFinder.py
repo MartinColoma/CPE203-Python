@@ -4,6 +4,7 @@ from sympy import symbols, sympify, lambdify, diff
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+#Done and made by Martin Laurence G. Coloma
 x = symbols('x')
 
 def preprocess_equation(equation):
