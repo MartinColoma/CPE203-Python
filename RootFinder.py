@@ -4,6 +4,7 @@ from sympy import symbols, sympify, lambdify, diff
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+#Done and made by Martin Laurence G. Coloma true stone
 x = symbols('x')
 
 def preprocess_equation(equation):
@@ -104,6 +105,20 @@ def secant(f_lambda, x0, x1, tol):
             return iteration_data, x2
         x0, x1 = x1, x2
 
+def modified_newton(f_lambda, f_prime_lambda, f_double_prime_lambda, x0, tol):
+    iteration_data = []
+    iteration = 0
+    while True:
+        fx0 = f_lambda(x0)
+        f_prime_x0 = f_prime_lambda(x0)
+        f_double_prime_x0 = f_double_prime_lambda(x0)
+        x1 = x0 - (fx0 * f_prime_x0) / (f_prime_x0**2 - fx0 * f_double_prime_x0)
+        iteration += 1
+        iteration_data.append([iteration, x0, fx0, f_prime_x0, f_double_prime_x0, x1])
+        if abs(x1 - x0) <= tol:
+            return iteration_data, x1
+        x0 = x1
+
 def show_results(method_name, iteration_data, root_value):
     for widget in results_frame.winfo_children():
         widget.destroy()
@@ -159,6 +174,9 @@ def get_columns_and_headings(method_name):
     elif method_name == "Secant Method":
         columns = ["k", "xn", "f(xn)", "xn-1", "f(xn-1)", "xn+1"]
         headings = ["k", "xn", "f(xn)", "xn-1", "f(xn-1)", "xn+1"]
+    elif method_name == "Modified Newton-Raphson Method":
+        columns = ["k", "xn", "F(xn)", "f'(xn)", "f''(xn)", "xn+1"]
+        headings = ["k", "xn", "f(xn)", "f'(xn)", "f''(xn)", "xn+1"]
     return columns, headings
 
 def try_again():
@@ -168,7 +186,7 @@ def try_again():
 
 def update_parameter_b_state(*args):
     method_name = method_combobox.get()
-    if method_name in ['Fixed Point Method', 'Newton-Raphson Method']:
+    if method_name in ['Fixed Point Method', 'Newton-Raphson Method', 'Modified Newton-Raphson Method']:
         param_b_entry.config(state='disabled')
     else:
         param_b_entry.config(state='normal')
@@ -190,6 +208,8 @@ def check_show_result_button_state():
         show_result_button.config(state='normal')
     elif method_name == 'Secant Method' and equation_filled and param_a_filled and param_b_filled:
         show_result_button.config(state='normal')
+    elif method_name == 'Modified Newton-Raphson Method' and equation_filled and param_a_filled:
+        show_result_button.config(state='normal')
     else:
         show_result_button.config(state='disabled')
 
@@ -204,6 +224,8 @@ def process_input(method_name):
         f, f_lambda = parse_equation(equation_str)
         f_prime = diff(f, x)
         f_prime_lambda = lambdify(x, f_prime, 'numpy')
+        f_double_prime = diff(f_prime, x)
+        f_double_prime_lambda = lambdify(x, f_double_prime, 'numpy')
 
         if method_name == "Bisection Method":
             iteration_data, root_value = bisection_method(param_a, param_b, f_lambda)
@@ -215,6 +237,8 @@ def process_input(method_name):
             iteration_data, root_value = newton(f_lambda, f_prime_lambda, param_a, tol)
         elif method_name == "Secant Method":
             iteration_data, root_value = secant(f_lambda, param_a, param_b, tol)
+        elif method_name == "Modified Newton-Raphson Method":
+            iteration_data, root_value = modified_newton(f_lambda, f_prime_lambda, f_double_prime_lambda, param_a, tol)
         else:
             raise ValueError("Unknown method")
         
@@ -233,13 +257,14 @@ def main():
 
     window = tk.Tk()
     window.title("Numerical Methods to Find Roots of Equation")
+    window.geometry("850x200")
 
     tk.Label(window, text="Function (in terms of x):", font=("Courier New", 12)).grid(row=0, column=0, padx=10, pady=5, sticky='w')
     function_entry = tk.Entry(window, font=("Courier New", 12))
     function_entry.grid(row=0, column=1, padx=10, pady=5, sticky='ew')
 
     tk.Label(window, text="Method:", font=("Courier New", 12)).grid(row=1, column=0, padx=10, pady=5, sticky='w')
-    method_combobox = ttk.Combobox(window, values=["Bisection Method", "Regula Falsi Method", "Fixed Point Method", "Newton-Raphson Method", "Secant Method"], font=("Courier New", 12), state="readonly")
+    method_combobox = ttk.Combobox(window, values=["Bisection Method", "Regula Falsi Method", "Fixed Point Method", "Newton-Raphson Method", "Secant Method", "Modified Newton-Raphson Method"], font=("Courier New", 12), state="readonly")
     method_combobox.grid(row=1, column=1, padx=10, pady=5, sticky='ew')
     method_combobox.bind("<<ComboboxSelected>>", update_parameter_b_state)
 
